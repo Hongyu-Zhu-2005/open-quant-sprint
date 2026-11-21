@@ -1,0 +1,34 @@
+{
+  "protocol": "docs/TRACK12_OOS_FUNDING.md",
+  "inputs_sha256": {
+    "data/csv_export/agent__data__warmup_20260912_20261019__panel_1h.parquet.csv.gz": "931051a9c01e220c64d2e3220f07d22e3e5ca159f2570cbc4d1cfe4d4f10fc92",
+    "data/csv_export/agent__data__forward_20261019_20261114__panel_1h.parquet.csv.gz": "79da4346c5fa930ab2817e4b3ff7009e0ea1d6f99226fd38c1f9469e6ea3993e"
+  },
+  "settlements": [
+    "2026-09-12 16:00:00+00:00",
+    "2026-11-13 16:00:00+00:00",
+    187
+  ],
+  "threshold_abs_rate": 0.000106501,
+  "observations_nonzero_funding": 3654,
+  "primary_top_group": {
+    "n": 140,
+    "clusters": 53,
+    "mean_bp": 5.659024300723725,
+    "se_bp": 10.142971960483365,
+    "t": 0.5579256575657577,
+    "p_one_sided_negative": 0.7103553023757887,
+    "p_two_sided": 0.5792893952484227,
+    "replicates_at_5pct_one_sided": false
+  },
+  "rest_group": {
+    "n": 3514,
+    "clusters": 63,
+    "mean_bp": -0.9231040443126584,
+    "se_bp": 3.3604149975574735,
+    "t": -0.274699418072952,
+    "p_one_sided_negative": 0.3922302353197025,
+    "p_two_sided": 0.784460470639405
+  },
+  "top_share": 0.038314176245210725
+}
