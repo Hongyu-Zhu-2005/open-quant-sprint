@@ -101,16 +101,19 @@ def block_bootstrap_mean(
     n_boot: int = 10_000,
     level: float = 0.95,
     seed: int = 0,
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, float, float, float]:
     """Moving-block bootstrap for the mean of a serially dependent series.
 
     NaNs are dropped first. Each resample joins ``ceil(n / block)`` blocks of
     ``block`` consecutive values with uniformly drawn starts (as in
     ``src.stats.sharpe_block_bootstrap_ci``) and is cut to length ``n``.
-    The two-sided p-value for a zero mean uses the resamples centred on the
-    observed mean: ``p = (1 + #{|m_b - m| >= |m|}) / (1 + n_boot)``.
+    The primary two-sided p-value follows Issue #19 exactly:
+    ``2 * min(share(m_b <= 0), share(m_b >= 0))``.  For transparency the
+    function also returns the centred-null sensitivity calculation used in the
+    first draft, ``(1 + #{|m_b - m| >= |m|}) / (1 + n_boot)``.
 
-    Returns the mean, the percentile interval at ``level`` and the p-value.
+    Returns the mean, percentile interval, specified tail-share p-value and
+    centred-null sensitivity p-value.
     """
     values = np.asarray(x, dtype=np.float64)
     values = values[~np.isnan(values)]
@@ -131,9 +134,10 @@ def block_bootstrap_mean(
     mean = float(values.mean())
     alpha = (1.0 - level) / 2.0
     lo, hi = np.quantile(boot, [alpha, 1.0 - alpha])
+    p_tail = min(1.0, 2.0 * min(np.mean(boot <= 0.0), np.mean(boot >= 0.0)))
     exceed = np.count_nonzero(np.abs(boot - mean) >= abs(mean))
-    p_value = (1.0 + exceed) / (1.0 + n_boot)
-    return mean, float(lo), float(hi), float(p_value)
+    p_centered = (1.0 + exceed) / (1.0 + n_boot)
+    return mean, float(lo), float(hi), float(p_tail), float(p_centered)
 
 
 # --------------------------------------------------------------------------
@@ -201,11 +205,12 @@ def _continuation(returns: pd.DataFrame, rows: pd.Index, seed: int) -> list[dict
         for kind, offset in (("same hour", 0), ("control -8h", CONTROL_OFFSET_HOURS)):
             ic = hourly_spearman_ic(same_hour_signal(returns, k, offset), target)
             ic = ic.reindex(rows)
-            mean, lo, hi, p = block_bootstrap_mean(
+            mean, lo, hi, p, p_centered = block_bootstrap_mean(
                 ic.to_numpy(), BOOTSTRAP_BLOCK_HOURS, seed=seed + k + offset
             )
             out.append({"k": k, "signal": kind, "mean_ic": mean, "lo": lo, "hi": hi,
-                        "p": p, "n_hours": int(ic.notna().sum())})
+                        "p": p, "p_centered_sensitivity": p_centered,
+                        "n_hours": int(ic.notna().sum())})
     same = [row for row in out if row["signal"] == "same hour"]
     for row, adj in zip(same, holm(np.array([row["p"] for row in same]))):
         row["p_holm"] = float(adj)

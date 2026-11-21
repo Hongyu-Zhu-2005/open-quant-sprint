@@ -116,15 +116,19 @@ def test_block_bootstrap_matches_direct_resampling_and_p_value() -> None:
     rng = np.random.default_rng(7)
     x = rng.standard_normal(1_003) + 0.3
     block, n_boot = 24, 2_000
-    mean, lo, hi, p = block_bootstrap_mean(x, block, n_boot=n_boot, seed=3)
+    mean, lo, hi, p, p_centered = block_bootstrap_mean(x, block, n_boot=n_boot, seed=3)
 
     starts = np.random.default_rng(3).integers(0, len(x) - block + 1, size=(n_boot, 42))
     idx = (starts[:, :, None] + np.arange(block)).reshape(n_boot, -1)[:, : len(x)]
     boot = x[idx].mean(axis=1)
     assert mean == pytest.approx(x.mean(), abs=1e-14)
     assert (lo, hi) == pytest.approx(tuple(np.quantile(boot, [0.025, 0.975])), abs=1e-12)
-    expected_p = (1 + np.count_nonzero(np.abs(boot - x.mean()) >= abs(x.mean()))) / (1 + n_boot)
+    expected_p = min(1.0, 2 * min(np.mean(boot <= 0), np.mean(boot >= 0)))
+    expected_centered = (
+        1 + np.count_nonzero(np.abs(boot - x.mean()) >= abs(x.mean()))
+    ) / (1 + n_boot)
     assert p == pytest.approx(expected_p, abs=1e-15)
+    assert p_centered == pytest.approx(expected_centered, abs=1e-15)
     assert p < 0.01 and 0 < lo < x.mean() < hi
 
 
